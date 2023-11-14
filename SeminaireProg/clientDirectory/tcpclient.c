@@ -1,4 +1,4 @@
-#include <errno.h>
+#include<errno.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -24,11 +24,11 @@ ap * init_ap_from_stdin(){
     
     printf("Enter Server IP adress :\n> ");
     if(scanf("%s",new_conn->ip) == -1){
-    HANDLE_ERROR("scanf ");
+        HANDLE_ERROR("scanf ");
     }
 
     if(strlen(new_conn->ip)>15){
-        fprintf(stderr, "IPv4 ADRESS TOO LONG\n");
+        fprintf(stderr, "IPv4 ADRESS INVALID\n");
         exit(EXIT_FAILURE);
     }
 
@@ -67,7 +67,7 @@ ap * init_ap_from_argv(int argc, char * argv[]){
     new_conn->port = port; 
     
     if(strlen(new_conn->ip)>15){
-        fprintf(stderr, "IPv4 ADRESS TOO LONG\n");
+        fprintf(stderr, "IPv4 ADRESS INVALID\n");
         exit(EXIT_FAILURE);
     }
 
@@ -90,6 +90,9 @@ int main (int argc, char * argv[]){
 
     //Create the client socket
     clientSocket=socket(AF_INET, SOCK_STREAM, 0);
+    if(clientSocket == -1){
+        HANDLE_ERROR("socket");
+    }
     printf("Client socket created succesfully \n");
 
     //memset() is used to fill the structure with 0
@@ -102,7 +105,7 @@ int main (int argc, char * argv[]){
 
     //Connecting  to the server socket
     if(connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr))==-1){
-        HANDLE_ERROR("connnect"); 
+        HANDLE_ERROR("connnect "); 
     }
 
     printf("Connected to the Server\n");
@@ -111,7 +114,7 @@ int main (int argc, char * argv[]){
     printf("Data Received: %s\n", buffer);
 
     if(close(clientSocket)==-1){
-        HANDLE_ERROR("close");
+        HANDLE_ERROR("close ");
     }
 
     printf("Closing the connection\n");

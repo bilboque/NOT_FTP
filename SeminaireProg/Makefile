@@ -11,3 +11,11 @@ build_client: ./clientDirectory/tcpclient.c
 
 build_server: ./serverDirectory/tcpserver.c
 	gcc ./serverDirectory/tcpserver.c -o ./serverDirectory/tcpserver
+
+clean: clean_client clean_server
+
+clean_client:
+	rm ./clientDirectory/tcpclient
+
+clean_server:
+	rm ./serverDirectory/tcpserver

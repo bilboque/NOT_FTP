@@ -8,8 +8,6 @@
 #include<unistd.h>
 
 #define PORT 4455
-#define IP_ADDRESS "127.0.0.1"
-#define HANDLE_ERROR(msg) { perror(msg); exit(EXIT_FAILURE); }
 
 int main(){
     int sockfd;
@@ -26,21 +24,17 @@ int main(){
     //Create the server socket
     sockfd=socket(AF_INET, SOCK_STREAM, 0); //you might find PF_INET too
     printf("\nServer socket created\n");
-
     //memset() is used to fill the structure with 0
     memset(&serverAddr, '\0', sizeof(serverAddr));
 
    
     serverAddr.sin_family=AF_INET;
     serverAddr.sin_port=htons(PORT);
-    serverAddr.sin_addr.s_addr=inet_addr(IP_ADDRESS);
+    serverAddr.sin_addr.s_addr=inet_addr("127.0.0.1");
 
+    bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 
-    if(bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1){
-        HANDLE_ERROR("bind ");
-    }
-    printf("\nIP adresse: %s\n",IP_ADDRESS);
-    printf("Binded to port %d\n", PORT);
+    printf("\nBinded to port %d\n", 4455);
 
     listen(sockfd, 5); //5 clients can connect to me
     printf("Listening...\n");
@@ -49,16 +43,14 @@ int main(){
 
     newSocket=accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
 
-    strcpy(buffer, "Hello from server");
-    send(newSocket, buffer, strlen(buffer) + 1 , 0);
-    printf("Sending the data to the client\n");
+    strcpy(buffer, "\nHello from server\n");
+    
+    send(newSocket, buffer, strlen(buffer), 0);
+    printf("Sending the data to the client");
 
-    if(close(newSocket)==-1){
-        HANDLE_ERROR("close ");
-    }
-    if(close(sockfd)==-1){
-        HANDLE_ERROR("close ");
-    }
-    printf("Closing the connection\n");
-    exit(EXIT_SUCCESS);
+    close(newSocket);
+     
+
+     return 0;
+
 }
