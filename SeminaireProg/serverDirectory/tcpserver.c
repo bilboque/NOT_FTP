@@ -25,6 +25,9 @@ int main(){
 
     //Create the server socket
     sockfd=socket(AF_INET, SOCK_STREAM, 0); //you might find PF_INET too
+    if(sockfd == -1){
+        HANDLE_ERROR("socket ");
+    }
     printf("\nServer socket created\n");
 
     //memset() is used to fill the structure with 0
@@ -39,6 +42,7 @@ int main(){
     if(bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1){
         HANDLE_ERROR("bind ");
     }
+
     printf("\nIP adresse: %s\n",IP_ADDRESS);
     printf("Binded to port %d\n", PORT);
 
