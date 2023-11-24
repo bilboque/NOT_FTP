@@ -51,15 +51,18 @@ int main(){
 
     addr_size=sizeof(newAddr);
 
-    newSocket=accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
+    while(1){
+        newSocket=accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
 
-    strcpy(buffer, "Hello from server");
-    send(newSocket, buffer, strlen(buffer) + 1 , 0);
-    printf("Sending the data to the client\n");
+        strcpy(buffer, "Hello from server");
+        send(newSocket, buffer, strlen(buffer) + 1 , 0);
+        printf("Sending the data to the client\n");
 
-    if(close(newSocket)==-1){
-        HANDLE_ERROR("close ");
+        if(close(newSocket)==-1){
+            HANDLE_ERROR("close ");
+        }
     }
+
     if(close(sockfd)==-1){
         HANDLE_ERROR("close ");
     }
