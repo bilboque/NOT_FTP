@@ -1,0 +1,230 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/sendfile.h>
+
+#include "protocole.h"
+
+// Util
+void stf_send(int sfd, int ffd){
+    char buff[MAX_READ_LEN];
+    int n = 1;
+    memset(buff, '\0', MAX_READ_LEN);
+    while(1){
+        n = read(sfd,buff,MAX_READ_LEN);
+        if(n == -1){
+            HANDLE_ERROR("read");
+        }
+        else if(buff[n-1] == '\0'){
+            write(ffd, buff, strlen(buff));
+            return;
+        }
+        else{
+            write(ffd, buff, MAX_READ_LEN);
+            memset(buff, '\0', MAX_READ_LEN);
+        }
+    }
+}
+void fts_send(int sfd, int ffd){
+    int n = 1;
+    while(n>0){
+        n = sendfile(sfd, ffd, NULL, MAX_READ_LEN);
+        if(n == -1){
+            write(sfd, "ERROR IN FILE TRANSMISSION \0", strlen("ERROR IN FILE TRASMISSION \0"));
+            HANDLE_ERROR("sendfile");
+        }
+    }
+    if(write(sfd, "\0", 1) == -1){
+        HANDLE_ERROR("write");
+    }
+    return;
+}
+
+// Client
+void help(){
+    puts("\n->->-> HELP <-<-<-");
+    printf("> %s       // %s\n", HELP, HELP_DSC);
+    printf("> %s       // %s\n", LIST, LIST_DSC);
+    printf("> %s [file] // %s\n", GET, GET_DSC);
+    printf("> %s [file] // %s\n", PUT, PUT_DSC);
+    printf("> %s       // %s\n\n", QUIT, QUIT_DSC);
+}
+
+int check_cmd(char * cmd){
+    char * valid_cmd[] = VALIDCMD;
+    for(int i = 0; i < N_CMD; i++){
+        if(strcmp(cmd, valid_cmd[i]) == 0){
+            return i;
+        }
+    }
+    
+    return CMD_DEFAULT;
+}
+
+void get_cmd(int * cmd, char * file){
+    char buff[MAX_CMD_LEN];
+    char command[MAX_CMD_LEN];
+    char path[MAX_PATH_LEN];
+
+    printf("> ");
+    fgets(buff, MAX_CMD_LEN, stdin);
+    sscanf(buff, "%s %s", command, path);
+
+    *cmd = check_cmd(command);
+
+    strncpy(file, path, MAX_PATH_LEN);
+}
+
+void rcv_list(int sfd){
+    char buff[MAX_READ_LEN];
+    memset(buff, '\0', MAX_READ_LEN);
+
+    snprintf(buff, MAX_READ_LEN, "cmd=%d, file=N/A", CMD_LIST);
+
+    if(write(sfd, buff, MAX_READ_LEN) == -1){
+        HANDLE_ERROR("write");
+    }
+    memset(buff, '\0', MAX_READ_LEN);
+
+    if(read(sfd, buff, MAX_READ_LEN) == -1){
+        printf("%s\n", buff);
+        HANDLE_ERROR("read");
+    }
+    if(strncmp(buff, CTS, strlen(CTS)) != 0){
+        HANDLE_NCTS_FAILSAFE(sfd);
+    }
+    memset(buff, '\0', MAX_READ_LEN);
+
+    puts("\n->->-> Server Files <-<-<-");
+    while(1){
+        int n = read(sfd,buff,MAX_READ_LEN);
+        if(n == -1){
+            HANDLE_ERROR("read");
+        }
+        else if(buff[n-1] == '\0'){
+            printf("%s", buff);
+            printf("\n");
+            return;
+        }
+        else{
+            printf("%s", buff);
+            memset(buff, '\0', MAX_READ_LEN);
+        }
+    }
+}
+
+void client_get(int sfd, char * path){
+    char buff[MAX_READ_LEN];
+    memset(buff, '\0', MAX_READ_LEN);
+
+    snprintf(buff, MAX_READ_LEN, "cmd=%d, file=%s", CMD_GET, path);
+
+    if(write(sfd, buff, MAX_READ_LEN) == -1){
+        HANDLE_ERROR("write");
+    }
+    memset(buff, '\0', MAX_READ_LEN);
+
+    if(read(sfd, buff, MAX_READ_LEN) == -1){
+        printf("%s\n", buff);
+        HANDLE_ERROR("read");
+    }
+    if(strncmp(buff, CTS, strlen(CTS)) != 0){
+        HANDLE_NCTS_FAILSAFE(sfd);
+    }
+    memset(buff, '\0', MAX_READ_LEN);
+
+    int ffd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if(ffd == -1){
+        HANDLE_ERROR("open");
+    }
+
+    stf_send(sfd, ffd);
+
+    close(ffd);
+}
+
+void client_put(int sfd, char * path){
+}
+
+void client_exit(int sfd){
+    char buff[MAX_READ_LEN];
+    memset(buff, '\0', MAX_READ_LEN);
+
+    snprintf(buff, MAX_READ_LEN, "cmd=%d, file=N/A", CMD_EXIT);
+
+    if(write(sfd, buff, MAX_READ_LEN) == -1){
+        HANDLE_ERROR("write");
+    }
+}
+
+// Server
+void send_list(int sfd, char *path){
+    DIR *dir;
+    struct dirent *entry;
+    char buffer[MAX_READ_LEN];
+    memset(buffer, '\0', MAX_READ_LEN);
+
+    dir = opendir(path);
+    if (dir == NULL) {
+        perror("opendir");
+        ALERT_UNEXPECTED_EVENT("Can't open serverside storage directory", sfd)
+    }
+    else if (write(sfd, CTS, sizeof(CTS)) == -1){
+        HANDLE_ERROR("write");
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0){
+
+            snprintf(buffer, sizeof(buffer), "%s\n", entry->d_name);
+
+            // Send the filename to the connected socket
+            if (write(sfd, buffer, strlen(buffer)) == -1) {
+                closedir(dir);
+                HANDLE_ERROR("write");
+            }
+        }
+    }
+
+    if(write(sfd, "\0", 1) == -1){
+        HANDLE_ERROR("write");
+    }
+
+    closedir(dir);
+}
+
+void server_get(int sfd, char * storage_path, char *path){
+    char buffer[MAX_READ_LEN];
+    memset(buffer, '\0', MAX_READ_LEN);
+
+    strcat(buffer, storage_path);
+    strcat(buffer, path);
+    puts(buffer);
+
+    int ffd = open(buffer, O_RDONLY);
+    if(ffd == -1){
+        perror("open");
+        ALERT_UNEXPECTED_EVENT("server_get : Can't open requested file", sfd);
+    }
+    else if (write(sfd, CTS, sizeof(CTS)) == -1){
+        HANDLE_ERROR("write");
+    }
+
+    fts_send(sfd, ffd);
+
+    close(ffd);
+}
+
+void server_put(int sfd, char * storage_path, char *path){
+}
+
+void server_exit(int sfd){
+    printf("Closing the connection\n");
+    if(close(sfd) == -1){
+        HANDLE_ERROR("close");
+    }
+    exit(EXIT_SUCCESS);
+}

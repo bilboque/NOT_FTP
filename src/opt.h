@@ -1,8 +1,6 @@
 #ifndef __OPTIONS_H__
 #define __OPTIONS_H__
 
-#define HANDLE_ERROR(msg) { perror(msg); exit(EXIT_FAILURE); }
-
 typedef struct address_and_port{
     char * ip;
     int port;

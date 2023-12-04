@@ -1,6 +1,5 @@
-#include "options.h"
+#include "opt.h"
 
-#include<errno.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -18,7 +17,8 @@ ap * init_ap_from_stdin(){
     
     printf("Enter Server IP adress :\n> ");
     if(scanf("%s",new_conn->ip) == -1){
-        HANDLE_ERROR("scanf ");
+        perror("scanf");
+        exit(EXIT_SUCCESS);
     }
 
     if(strlen(new_conn->ip)>15){
@@ -28,7 +28,8 @@ ap * init_ap_from_stdin(){
 
     printf("Enter Server Port :\n> ");
     if(scanf("%d",&new_conn->port) == -1){
-        HANDLE_ERROR("scanf");
+        perror("scanf");
+        exit(EXIT_SUCCESS);
     }
     getchar();
 
