@@ -31,23 +31,20 @@ ap * init_ap_from_stdin(){
         perror("scanf");
         exit(EXIT_SUCCESS);
     }
-    getchar();
+    getchar(); // scanf bug fix 
 
     return new_conn;
 }
 
 ap * init_ap_from_argv(int argc, char * argv[]){
-
     ap * new_conn = malloc(sizeof(ap));
-
     new_conn->ip = argv[1];
-
 
     int port = 0;
     int factor = 1;
 
     for(int i = strlen(argv[2]) -1 ; i>-1;i--){
-        int currentInt = argv[2][i] - '0';
+        int currentInt = argv[2][i] - '0'; // char to int convertion hack
 
         if(currentInt < 10 && currentInt > -1){
             port += currentInt * factor;

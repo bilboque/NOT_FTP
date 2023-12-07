@@ -13,6 +13,7 @@ void stf_send(int sfd, int ffd){
     char buff[MAX_READ_LEN];
     int n = 1;
     memset(buff, '\0', MAX_READ_LEN);
+
     while(1){
         n = read(sfd,buff,MAX_READ_LEN);
         if(n == -1){
@@ -30,6 +31,7 @@ void stf_send(int sfd, int ffd){
 }
 void fts_send(int sfd, int ffd){
     int n = 1;
+
     while(n>0){
         n = sendfile(sfd, ffd, NULL, MAX_READ_LEN);
         if(n == -1){
@@ -37,20 +39,20 @@ void fts_send(int sfd, int ffd){
             HANDLE_ERROR("sendfile");
         }
     }
+
     if(write(sfd, "\0", 1) == -1){
         HANDLE_ERROR("write");
     }
-    return;
 }
 
 // Client
 void help(){
     puts("\n->->-> HELP <-<-<-");
-    printf("> %s       // %s\n", HELP, HELP_DSC);
-    printf("> %s       // %s\n", LIST, LIST_DSC);
-    printf("> %s [file] // %s\n", GET, GET_DSC);
-    printf("> %s [file] // %s\n", PUT, PUT_DSC);
-    printf("> %s       // %s\n\n", QUIT, QUIT_DSC);
+    printf("> %s                          // %s\n", HELP, HELP_DSC);
+    printf("> %s                          // %s\n", LIST, LIST_DSC);
+    printf("> %s serverfile [dst_filename] // %s\n", GET, GET_DSC);
+    printf("> %s clientfile [dst_filename] // %s\n", PUT, PUT_DSC);
+    printf("> %s                          // %s\n\n", QUIT, QUIT_DSC);
 }
 
 int check_cmd(char * cmd){
@@ -64,18 +66,35 @@ int check_cmd(char * cmd){
     return CMD_DEFAULT;
 }
 
-void get_cmd(int * cmd, char * file){
+int get_cmd(int * cmd, char * file, char * new_file){
     char buff[MAX_CMD_LEN];
     char command[MAX_CMD_LEN];
     char path[MAX_PATH_LEN];
+    char n_path[MAX_PATH_LEN];
 
     printf("> ");
     fgets(buff, MAX_CMD_LEN, stdin);
-    sscanf(buff, "%s %s", command, path);
+    int n = sscanf(buff, "%s %s %s", command, path, n_path);
 
     *cmd = check_cmd(command);
 
-    strncpy(file, path, MAX_PATH_LEN);
+    switch (n) {
+        case 0:
+            HANDLE_ERROR("sscanf (something went wrong)");
+        case 1:
+            break;
+        case 2:
+            strncpy(file, path, MAX_PATH_LEN);
+            break;
+        case 3:
+            strncpy(file, path, MAX_PATH_LEN);
+            strncpy(new_file, n_path, MAX_PATH_LEN);
+            break;
+        default:
+            break;
+    }
+
+    return n;
 }
 
 void rcv_list(int sfd){
@@ -95,6 +114,7 @@ void rcv_list(int sfd){
     }
     if(strncmp(buff, CTS, strlen(CTS)) != 0){
         HANDLE_NCTS_FAILSAFE(sfd);
+        return;
     }
     memset(buff, '\0', MAX_READ_LEN);
 
@@ -116,7 +136,7 @@ void rcv_list(int sfd){
     }
 }
 
-void client_get(int sfd, char * path){
+void client_get(int sfd, char * path, char * file_rename){
     char buff[MAX_READ_LEN];
     memset(buff, '\0', MAX_READ_LEN);
 
@@ -133,10 +153,12 @@ void client_get(int sfd, char * path){
     }
     if(strncmp(buff, CTS, strlen(CTS)) != 0){
         HANDLE_NCTS_FAILSAFE(sfd);
+        return;
     }
     memset(buff, '\0', MAX_READ_LEN);
+    
+    int ffd = open((file_rename == NULL) ? path : file_rename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-    int ffd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(ffd == -1){
         HANDLE_ERROR("open");
     }
@@ -146,7 +168,34 @@ void client_get(int sfd, char * path){
     close(ffd);
 }
 
-void client_put(int sfd, char * path){
+void client_put(int sfd, char * path, char * file_rename){
+    int ffd = open(path, O_RDONLY);
+    if(ffd == -1){
+        perror("open");
+        return;
+    }
+    char buff[MAX_READ_LEN];
+    memset(buff, '\0', MAX_READ_LEN);
+
+    snprintf(buff, MAX_READ_LEN, "cmd=%d, file=%s", CMD_PUT, (file_rename == NULL) ? path : file_rename);
+
+    if(write(sfd, buff, MAX_READ_LEN) == -1){
+        HANDLE_ERROR("write");
+    }
+    memset(buff, '\0', MAX_READ_LEN);
+
+    if(read(sfd, buff, MAX_READ_LEN) == -1){
+        printf("%s\n", buff);
+        HANDLE_ERROR("read");
+    }
+    if(strncmp(buff, CTS, strlen(CTS)) != 0){
+        HANDLE_NCTS_FAILSAFE(sfd);
+        return;
+    }
+
+    fts_send(sfd, ffd);
+
+    close(ffd);
 }
 
 void client_exit(int sfd){
@@ -181,7 +230,6 @@ void send_list(int sfd, char *path){
 
             snprintf(buffer, sizeof(buffer), "%s\n", entry->d_name);
 
-            // Send the filename to the connected socket
             if (write(sfd, buffer, strlen(buffer)) == -1) {
                 closedir(dir);
                 HANDLE_ERROR("write");
@@ -208,6 +256,7 @@ void server_get(int sfd, char * storage_path, char *path){
     if(ffd == -1){
         perror("open");
         ALERT_UNEXPECTED_EVENT("server_get : Can't open requested file", sfd);
+        return;
     }
     else if (write(sfd, CTS, sizeof(CTS)) == -1){
         HANDLE_ERROR("write");
@@ -219,6 +268,26 @@ void server_get(int sfd, char * storage_path, char *path){
 }
 
 void server_put(int sfd, char * storage_path, char *path){
+    char buffer[MAX_READ_LEN];
+    memset(buffer, '\0', MAX_READ_LEN);
+
+    strcat(buffer, storage_path);
+    strcat(buffer, path);
+    puts(buffer);
+
+    int ffd = open(buffer, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if(ffd == -1){
+        perror("open");
+        ALERT_UNEXPECTED_EVENT("server_put : File already exist or open failed", sfd);
+        return;
+    }
+    else if (write(sfd, CTS, sizeof(CTS)) == -1){
+        HANDLE_ERROR("write");
+    }
+
+    stf_send(sfd, ffd);
+
+    close(ffd);
 }
 
 void server_exit(int sfd){

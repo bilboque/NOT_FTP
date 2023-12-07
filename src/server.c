@@ -1,3 +1,5 @@
+#include "protocole.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,8 +13,6 @@
 #include <fcntl.h>
 #include <sys/sendfile.h>
 #include <sys/wait.h>
-
-#include "protocole.h"
 
 #define PORT 4455
 #define IP_ADDRESS "127.0.0.1"
@@ -35,13 +35,11 @@ int main(){
     }
     printf("\nServer socket created\n");
 
-    //memset() is used to fill the structure with 0
     memset(&serverAddr, '\0', sizeof(serverAddr));
 
     serverAddr.sin_family=AF_INET;
     serverAddr.sin_port=htons(PORT);
     serverAddr.sin_addr.s_addr=inet_addr(IP_ADDRESS);
-
 
     if(bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1){
         HANDLE_ERROR("bind");
@@ -50,14 +48,13 @@ int main(){
     printf("\nIP adresse: %s\n", IP_ADDRESS);
     printf("Binded to port %d\n", PORT);
 
-    listen(sockfd, 5); //5 clients can connect to me
+    listen(sockfd, 5);
     printf("Listening...\n");
 
     addr_size=sizeof(newAddr);
     while(1){
         newSocket=accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
         
-        // fork hack
         int pid = fork();
         if(pid == 0){
             int cpid = fork();
@@ -90,7 +87,7 @@ int main(){
                         case CMD_PUT:
                             server_put(newSocket, STORAGE_PATH, path);
                             break;
-                        default:
+                        default: // Impossible
                             ALERT_UNEXPECTED_EVENT("Unknown command from client", newSocket);
                             break;
                     }

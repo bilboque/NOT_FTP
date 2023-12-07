@@ -1,7 +1,7 @@
-#ifndef __CMD_H__
-#define __CMD_H__
+#ifndef __PROTOCOLE_H__
+#define __PROTOCOLE_H__
 
-// Constants
+// Buffer Constants
 #define MAX_CMD_LEN 256
 #define MAX_READ_LEN 4096
 #define MAX_PATH_LEN 64
@@ -39,25 +39,26 @@
 
 // Error handleing
 #define HANDLE_ERROR(msg) { perror(msg); exit(EXIT_FAILURE); }
-#define HANDLE_NCTS_FAILSAFE(sfd) {fprintf(stderr,"No CTS confirmation or ABORT received\n"); close(sfd); exit(EXIT_FAILURE);}
-#define ALERT_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str); write(sfd, ABORT, strlen(ABORT)); close(sfd); exit(EXIT_FAILURE);}
-#define HANDLE_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str); close(sfd); exit(EXIT_FAILURE);}
+#define HANDLE_NCTS_FAILSAFE(sfd) {fprintf(stderr,"ABORT received (the file requested can't be opened or did not exist)\n");}
+#define HANDLE_PUT_FAILSAFE(sfd) {fprintf(stderr,"ABORT received (the file already exists or can't be created)\n");}
+#define ALERT_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str); write(sfd, ABORT, strlen(ABORT));}
+#define HANDLE_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str);}
 
 
 // utilitaire
 void stf_send(int sfd, int ffd);
-void fts_send(int sfd, int ffd);
+void fts_send(int sfd, int ffd); // Utilise le senfile syscall non-posix (voir le readme)
 
 // client side functions
 void rcv_list(int sfd);
-void client_get(int sfd, char * path);
-void client_put(int sfd, char * path);
+void client_get(int sfd, char * path, char * new_file_name);
+void client_put(int sfd, char * path, char * new_file_name);
 void client_exit(int sfd);
 
 void help();
 
 int check_cmd(char * cmd);
-void get_cmd(int * cmd, char * file);
+int get_cmd(int * cmd, char * file, char * new_file);
 
 // server side functions
 void send_list(int sfd, char * path);
