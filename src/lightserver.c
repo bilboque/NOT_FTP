@@ -67,6 +67,9 @@ int main(){
                 char * pargv[] = {"./out/server", nsockbuff, NULL};
 
                 int ret = execv(pargv[0], pargv);
+                if(ret == -1){
+                    perror("execv");
+                }
             }
             else{
                 exit(EXIT_SUCCESS);
