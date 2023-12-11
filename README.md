@@ -12,7 +12,7 @@ Use the makefile then run server and client from the same wd as the makefile.
 (with ./out/server and ./out/client [ip] [port] or just ./out/client)
 
 ## Note on the client server implementation
-The c code i wrote incude posix syscall for file handling so you have to run this code on a posix OS.
+The c code i wrote include posix syscall for file handling so you have to run this code on a posix OS.
 The fts_send utilitary function used by both client and server use the sendfile syscall wich isn't posix.(cf linux man 2 sendfile)
 If you run this code on macos or openbsd system it might not work so you have to rewrite fts_send code to
 follow posix norm.

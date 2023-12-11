@@ -48,6 +48,7 @@
 // utilitaire
 void stf_send(int sfd, int ffd);
 void fts_send(int sfd, int ffd); // Utilise le senfile syscall non-posix (voir le readme)
+int string_to_int(char * snum);
 
 // client side functions
 void rcv_list(int sfd);

@@ -24,7 +24,7 @@ void stf_send(int sfd, int ffd){
             return;
         }
         else{
-            write(ffd, buff, MAX_READ_LEN);
+            write(ffd, buff, strlen(buff));
             memset(buff, '\0', MAX_READ_LEN);
         }
     }
@@ -43,6 +43,14 @@ void fts_send(int sfd, int ffd){
     if(write(sfd, "\0", 1) == -1){
         HANDLE_ERROR("write");
     }
+}
+
+int string_to_int(char * snum){
+    int result = -1;
+
+    sscanf(snum, "%d", &result);
+
+    return result;
 }
 
 // Client

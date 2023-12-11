@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -19,89 +20,47 @@
 #define HANDLE_ERROR(msg) { perror(msg); exit(EXIT_FAILURE); }
 #define STORAGE_PATH "./myBigDataCenter/"
 
-int main(){
-    int sockfd;
-    struct sockaddr_in serverAddr;
-
-    int newSocket;
-    struct sockaddr_in newAddr;
-
-    socklen_t addr_size;
-
-    sockfd=socket(AF_INET, SOCK_STREAM, 0);
-
-    if(sockfd == -1){
-        HANDLE_ERROR("socket");
+int main(int argc, char * argv[]){
+    if (argv[1] == NULL){
+        exit(EXIT_FAILURE);
     }
-    printf("\nServer socket created\n");
-
-    memset(&serverAddr, '\0', sizeof(serverAddr));
-
-    serverAddr.sin_family=AF_INET;
-    serverAddr.sin_port=htons(PORT);
-    serverAddr.sin_addr.s_addr=inet_addr(IP_ADDRESS);
-
-    if(bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1){
-        HANDLE_ERROR("bind");
+    
+    int newSocket = string_to_int(argv[1]);
+    if(newSocket == -1){
+        exit(EXIT_FAILURE);
     }
 
-    printf("\nIP adresse: %s\n", IP_ADDRESS);
-    printf("Binded to port %d\n", PORT);
+    char buffer[MAX_READ_LEN];
 
-    listen(sockfd, 5);
-    printf("Listening...\n");
+    strcpy(buffer, "Hello from server");
+    write(newSocket, buffer, MAX_READ_LEN);
+    printf("Sending the data to the client\n");
 
-    addr_size=sizeof(newAddr);
+    char path[MAX_PATH_LEN] = "N/A";
+    int cmd = CMD_DEFAULT;
+
     while(1){
-        newSocket=accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
-        
-        int pid = fork();
-        if(pid == 0){
-            int cpid = fork();
+        read(newSocket, buffer, MAX_READ_LEN);
+        sscanf(buffer, "cmd=%d, file=%s", &cmd, path);
+        PRINT_MSG(cmd, path);
 
-            if(cpid == 0){
-                char buffer[MAX_READ_LEN];
-
-                strcpy(buffer, "Hello from server");
-                write(newSocket, buffer, MAX_READ_LEN);
-                printf("Sending the data to the client\n");
-
-                char path[MAX_PATH_LEN] = "N/A";
-                int cmd = CMD_DEFAULT;
-
-                while(1){
-                    read(newSocket, buffer, MAX_READ_LEN);
-                    sscanf(buffer, "cmd=%d, file=%s", &cmd, path);
-                    PRINT_MSG(cmd, path);
-
-                    switch (cmd) {
-                        case CMD_EXIT:
-                            server_exit(newSocket);
-                            break;
-                        case CMD_LIST:
-                            send_list(newSocket, STORAGE_PATH);
-                            break;
-                        case CMD_GET:
-                            server_get(newSocket, STORAGE_PATH, path);
-                            break;
-                        case CMD_PUT:
-                            server_put(newSocket, STORAGE_PATH, path);
-                            break;
-                        default: // Impossible
-                            ALERT_UNEXPECTED_EVENT("Unknown command from client", newSocket);
-                            break;
-                    }
-                }
-            }
-            else{
-                exit(EXIT_SUCCESS);
-            }
-        }
-        else if(pid > 0){
-            wait(NULL);
-        }
-        else{
-            HANDLE_ERROR("fork");
+        switch (cmd) {
+            case CMD_EXIT:
+                server_exit(newSocket);
+                break;
+            case CMD_LIST:
+                send_list(newSocket, STORAGE_PATH);
+                break;
+            case CMD_GET:
+                server_get(newSocket, STORAGE_PATH, path);
+                break;
+            case CMD_PUT:
+                server_put(newSocket, STORAGE_PATH, path);
+                break;
+            default:
+                ALERT_UNEXPECTED_EVENT("Unknown command from client", newSocket);
+                exit(EXIT_FAILURE);
+                break;
         }
     }
 }
