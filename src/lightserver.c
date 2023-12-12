@@ -60,9 +60,9 @@ int main(){
 
             if(cpid == 0){
                 
-                char nsockbuff[10];
-                memset(nsockbuff, '\0', 10);
-                snprintf(nsockbuff, 10, "%d", newSocket);
+                char nsockbuff[20];
+                memset(nsockbuff, '\0', 20);
+                snprintf(nsockbuff, 20, "%d", newSocket);
 
                 char * pargv[] = {"./out/server", nsockbuff, NULL};
 
