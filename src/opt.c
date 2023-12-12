@@ -43,20 +43,7 @@ ap * init_ap_from_argv(int argc, char * argv[]){
     int port = 0;
     int factor = 1;
 
-    for(int i = strlen(argv[2]) -1 ; i>-1;i--){
-        int currentInt = argv[2][i] - '0'; // char to int convertion hack
-
-        if(currentInt < 10 && currentInt > -1){
-            port += currentInt * factor;
-            factor *= 10;
-        }
-        else{
-            fprintf(stderr, "INVALID PORT : argv[2][%d] = %c\n" , i , argv[2][i]);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    new_conn->port = port; 
+    sscanf(argv[2], "%d", &new_conn->port);
 
     if(strlen(new_conn->ip)>15){
         fprintf(stderr, "IPv4 ADRESS INVALID\n");

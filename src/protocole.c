@@ -1,3 +1,5 @@
+#include "protocole.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +8,7 @@
 #include <dirent.h>
 #include <sys/sendfile.h>
 
-#include "protocole.h"
+#include <readline/readline.h>
 
 // Util
 void stf_send(int sfd, int ffd){
@@ -29,6 +31,7 @@ void stf_send(int sfd, int ffd){
         }
     }
 }
+
 void fts_send(int sfd, int ffd){
     int n = 1;
 
@@ -60,7 +63,8 @@ void help(){
     printf("> %s                          // %s\n", LIST, LIST_DSC);
     printf("> %s serverfile [dst_filename] // %s\n", GET, GET_DSC);
     printf("> %s clientfile [dst_filename] // %s\n", PUT, PUT_DSC);
-    printf("> %s                          // %s\n\n", QUIT, QUIT_DSC);
+    printf("> %s                          // %s\n", QUIT, QUIT_DSC);
+    printf("> %s [path]                     // %s\n\n", CD, CD_DSC);
 }
 
 int check_cmd(char * cmd){
@@ -75,14 +79,13 @@ int check_cmd(char * cmd){
 }
 
 int get_cmd(int * cmd, char * file, char * new_file){
-    char buff[MAX_CMD_LEN];
     char command[MAX_CMD_LEN];
     char path[MAX_PATH_LEN];
     char n_path[MAX_PATH_LEN];
 
-    printf("> ");
-    fgets(buff, MAX_CMD_LEN, stdin);
-    int n = sscanf(buff, "%s %s %s", command, path, n_path);
+    char * input = readline("> ");
+    int n = sscanf(input, "%s %s %s", command, path, n_path);
+    free(input);
 
     *cmd = check_cmd(command);
 
@@ -98,14 +101,29 @@ int get_cmd(int * cmd, char * file, char * new_file){
             strncpy(file, path, MAX_PATH_LEN);
             strncpy(new_file, n_path, MAX_PATH_LEN);
             break;
-        default:
+        default: // how
             break;
     }
 
     return n;
 }
 
-void rcv_list(int sfd){
+void cd(char * path){
+    char * home = getenv("HOME");
+    if(path == NULL || strcmp(path, "~") == 0){
+        if(chdir(home) == -1){
+            perror("chdir");
+        }
+    }
+    else if(chdir(path) == -1){
+        perror("chdir");
+    }
+    char * cwd = getcwd(NULL, 0);
+    puts(cwd);
+    free(cwd);
+}
+
+void client_list(int sfd){
     char buff[MAX_READ_LEN];
     memset(buff, '\0', MAX_READ_LEN);
 
@@ -121,7 +139,7 @@ void rcv_list(int sfd){
         HANDLE_ERROR("read");
     }
     if(strncmp(buff, CTS, strlen(CTS)) != 0){
-        HANDLE_NCTS_FAILSAFE(sfd);
+        HANDLE_GET_FAILSAFE(sfd);
         return;
     }
     memset(buff, '\0', MAX_READ_LEN);
@@ -160,7 +178,7 @@ void client_get(int sfd, char * path, char * file_rename){
         HANDLE_ERROR("read");
     }
     if(strncmp(buff, CTS, strlen(CTS)) != 0){
-        HANDLE_NCTS_FAILSAFE(sfd);
+        HANDLE_GET_FAILSAFE(sfd);
         return;
     }
     memset(buff, '\0', MAX_READ_LEN);
@@ -197,7 +215,7 @@ void client_put(int sfd, char * path, char * file_rename){
         HANDLE_ERROR("read");
     }
     if(strncmp(buff, CTS, strlen(CTS)) != 0){
-        HANDLE_NCTS_FAILSAFE(sfd);
+        HANDLE_PUT_FAILSAFE(sfd);
         return;
     }
 
@@ -218,7 +236,7 @@ void client_exit(int sfd){
 }
 
 // Server
-void send_list(int sfd, char *path){
+void server_list(int sfd, char *path){
     DIR *dir;
     struct dirent *entry;
     char buffer[MAX_READ_LEN];
@@ -258,12 +276,11 @@ void server_get(int sfd, char * storage_path, char *path){
 
     strcat(buffer, storage_path);
     strcat(buffer, path);
-    puts(buffer);
 
     int ffd = open(buffer, O_RDONLY);
     if(ffd == -1){
         perror("open");
-        ALERT_UNEXPECTED_EVENT("server_get : Can't open requested file", sfd);
+        ALERT_UNEXPECTED_EVENT("server_get: Can't open requested file", sfd);
         return;
     }
     else if (write(sfd, CTS, sizeof(CTS)) == -1){
@@ -281,12 +298,11 @@ void server_put(int sfd, char * storage_path, char *path){
 
     strcat(buffer, storage_path);
     strcat(buffer, path);
-    puts(buffer);
 
     int ffd = open(buffer, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(ffd == -1){
         perror("open");
-        ALERT_UNEXPECTED_EVENT("server_put : File already exist or open failed", sfd);
+        ALERT_UNEXPECTED_EVENT("server_put: File already exist or open failed", sfd);
         return;
     }
     else if (write(sfd, CTS, sizeof(CTS)) == -1){
@@ -298,8 +314,8 @@ void server_put(int sfd, char * storage_path, char *path){
     close(ffd);
 }
 
-void server_exit(int sfd){
-    printf("Closing the connection\n");
+void server_exit(int sfd, int num){
+    printf("Closing client %d connection\n", num);
     if(close(sfd) == -1){
         HANDLE_ERROR("close");
     }

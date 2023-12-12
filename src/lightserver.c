@@ -16,7 +16,6 @@
 #define PORT 4455
 #define IP_ADDRESS "127.0.0.1"
 #define HANDLE_ERROR(msg) { perror(msg); exit(EXIT_FAILURE); }
-#define STORAGE_PATH "./myBigDataCenter/"
 
 int main(){
     int sockfd;
@@ -51,9 +50,12 @@ int main(){
     printf("Listening...\n");
 
     addr_size=sizeof(newAddr);
+    
+    int cl_id = 0;
     while(1){
         newSocket=accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
-        
+        cl_id++;
+
         pid_t pid = fork();
         if(pid == 0){
             pid_t cpid = fork();
@@ -61,14 +63,17 @@ int main(){
             if(cpid == 0){
                 
                 char nsockbuff[20];
+                char nclbuff[20];
                 memset(nsockbuff, '\0', 20);
+                memset(nclbuff, '\0', 20);
                 snprintf(nsockbuff, 20, "%d", newSocket);
+                snprintf(nclbuff, 20, "%d", cl_id);
 
-                char * pargv[] = {"./out/server", nsockbuff, NULL};
+                char * pargv[] = {"./out/server", nsockbuff, nclbuff, NULL};
 
                 int ret = execv(pargv[0], pargv);
                 if(ret == -1){
-                    perror("execv");
+                    HANDLE_ERROR("execv");
                 }
             }
             else{

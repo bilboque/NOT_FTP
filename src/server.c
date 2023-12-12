@@ -15,8 +15,6 @@
 #include <sys/sendfile.h>
 #include <sys/wait.h>
 
-#define PORT 4455
-#define IP_ADDRESS "127.0.0.1"
 #define HANDLE_ERROR(msg) { perror(msg); exit(EXIT_FAILURE); }
 #define STORAGE_PATH "./myBigDataCenter/"
 
@@ -26,6 +24,7 @@ int main(int argc, char * argv[]){
     }
     
     int newSocket = string_to_int(argv[1]);
+    int client_id = (argv[2]) ? string_to_int(argv[2]) : 0;
     if(newSocket == -1){
         exit(EXIT_FAILURE);
     }
@@ -34,7 +33,7 @@ int main(int argc, char * argv[]){
 
     strcpy(buffer, "Hello from server");
     write(newSocket, buffer, MAX_READ_LEN);
-    printf("Sending the data to the client\n");
+    printf("Client %d connected\n", client_id);
 
     char path[MAX_PATH_LEN] = "N/A";
     int cmd = CMD_DEFAULT;
@@ -42,14 +41,16 @@ int main(int argc, char * argv[]){
     while(1){
         read(newSocket, buffer, MAX_READ_LEN);
         sscanf(buffer, "cmd=%d, file=%s", &cmd, path);
+        
+        printf("from client %d: ",client_id);
         PRINT_MSG(cmd, path);
 
         switch (cmd) {
             case CMD_EXIT:
-                server_exit(newSocket);
+                server_exit(newSocket, client_id);
                 break;
             case CMD_LIST:
-                send_list(newSocket, STORAGE_PATH);
+                server_list(newSocket, STORAGE_PATH);
                 break;
             case CMD_GET:
                 server_get(newSocket, STORAGE_PATH, path);

@@ -10,6 +10,8 @@
 #include<arpa/inet.h>
 #include<unistd.h>
 
+#include <readline/readline.h>
+
 int main (int argc, char * argv[]){
     ap * addr_n_port = GET_AP(argc,argv);
 
@@ -33,6 +35,10 @@ int main (int argc, char * argv[]){
         HANDLE_ERROR("connnect "); 
     }
 
+    free(addr_n_port);
+
+    rl_bind_key('\t', rl_complete);
+
     char path_buff[MAX_PATH_LEN];
     char new_path_buff[MAX_PATH_LEN];
     int cmd = CMD_DEFAULT;
@@ -52,9 +58,8 @@ int main (int argc, char * argv[]){
         
         switch (cmd) {
             case CMD_LIST:
-                rcv_list(clientSocket);
+                client_list(clientSocket);
                 break;
-
             case CMD_GET:
                 if(n_args == 2){
                     client_get(clientSocket, path_buff, NULL);
@@ -66,7 +71,6 @@ int main (int argc, char * argv[]){
                     fprintf(stderr, "get failed: not enough arguments\n");
                 }
                 break;
-
             case CMD_PUT:
                 if(n_args == 2){
                     client_put(clientSocket, path_buff, NULL);
@@ -78,15 +82,15 @@ int main (int argc, char * argv[]){
                     fprintf(stderr, "put failed: not enough arguments\n");
                 }
                 break;
-
             case CMD_HELP:
                 help();
                 break;
-
             case CMD_EXIT:
                 client_exit(clientSocket);
                 break;
-
+            case CMD_CD:
+                cd((n_args < 2) ? NULL : path_buff);
+                break;
             default:
                 fprintf(stderr,"commande inconnue\n");
                 break;
