@@ -16,8 +16,8 @@
 #define CMD_CD 5
 
 // Commands
-#define QUIT "quit"
-#define QUIT_DSC "quit client"
+#define EXIT "exit"
+#define EXIT_DSC "quit client"
 #define LIST "list"
 #define LIST_DSC "list available server files"
 #define GET "get"
@@ -34,8 +34,8 @@
 
 // Comands utiliaire
 #define N_CMD 6
-#define VALIDCMD {QUIT, LIST, GET, PUT, HELP, CD}
-#define VALID_DSC {QUIT_DSC, LIST_DSC, GET_DSC, PUT_DSC, HELP_DSC, CD_DSC}
+#define VALIDCMD {EXIT, LIST, GET, PUT, HELP, CD}
+#define VALID_DSC {EXIT_DSC, LIST_DSC, GET_DSC, PUT_DSC, HELP_DSC, CD_DSC}
 
 // Debug and log purpose
 #define PRINT_MSG(a,b) printf("cmd=%d, file=%s\n", a, b)
@@ -46,6 +46,7 @@
 #define HANDLE_PUT_FAILSAFE(sfd) {fprintf(stderr,"ABORT received (the file already exists or can't be created)\n");}
 #define ALERT_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str); write(sfd, ABORT, strlen(ABORT));}
 #define HANDLE_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str);}
+
 
 // utilitaire
 void stf_send(int sfd, int ffd);

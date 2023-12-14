@@ -91,7 +91,7 @@ void help(){
     printf("> %s                          // %s\n", LIST, LIST_DSC);
     printf("> %s serverfile [dst_filename] // %s\n", GET, GET_DSC);
     printf("> %s clientfile [dst_filename] // %s\n", PUT, PUT_DSC);
-    printf("> %s                          // %s\n", QUIT, QUIT_DSC);
+    printf("> %s                          // %s\n", EXIT, EXIT_DSC);
     printf("> %s [path]                     // %s\n\n", CD, CD_DSC);
 }
 
