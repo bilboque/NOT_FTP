@@ -5,7 +5,7 @@ Source files are in ./src folder.
 Binary objects are in the ./out folder (including executables).
 The server storage is in the ./myBigDataCenter folder, if you rename this folder:
 - you have to change the STORAGE_PATH macro accordingly in the server source code.
-- STORAGE_PATH can't be ./ the will not function properly.
+- STORAGE_PATH can't be ./ because get and put will not function properly.
 
 ## How to run this project
 This project requires the gnu readline library, you will have to download it to compile the project.

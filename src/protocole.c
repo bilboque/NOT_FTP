@@ -21,12 +21,42 @@ void stf_send(int sfd, int ffd){
         if(n == -1){
             HANDLE_ERROR("read");
         }
-        else if(buff[n-1] == '\0' && buff[n-2] == '\xFF'){
-            write(ffd, buff, n-2);
+        else if(n > 1 && buff[n-1] == '\0' &&  buff[n-2] == '\xFF'){
+            if(write(ffd, buff, n-2) == -1){
+                HANDLE_ERROR("write");
+            }
             return;
         }
         else{
-            write(ffd, buff, n);
+            if(buff[n-1] != '\xFF'){
+                if(write(ffd, buff, n) == -1){
+                    HANDLE_ERROR("write");
+                }
+            }
+            else{ // Handle an edge case if the file is a pdf
+                if(write(ffd, buff, n-1) == -1){
+                    HANDLE_ERROR("write");
+                }
+                char next = buff[n-1];
+                while(next == '\xFF'){
+                    const char xFF = '\xFF';
+                    n = read(sfd, &next, 1);
+                    if(n == -1){
+                        HANDLE_ERROR("read");
+                    }
+                    else if(next == '\0'){
+                        return;
+                    }
+                    else{
+                        if(write(ffd, &xFF, 1) == -1){
+                            HANDLE_ERROR("write");
+                        }
+                    }
+                }
+                if(write(ffd, &next, 1) == -1){
+                    HANDLE_ERROR("write");
+                }
+            }
             memset(buff, '\0', MAX_READ_LEN);
         }
     }
@@ -38,7 +68,7 @@ void fts_send(int sfd, int ffd){
     while(n>0){
         n = sendfile(sfd, ffd, NULL, MAX_READ_LEN);
         if(n == -1){
-            write(sfd, "ERROR IN FILE TRANSMISSION \0", strlen("ERROR IN FILE TRASMISSION \0"));
+            write(sfd, "ERROR IN FILE TRANSMISSION \xFF\0", strlen("ERROR IN FILE TRASMISSION \xFF\0"));
             HANDLE_ERROR("sendfile");
         }
     }
@@ -50,9 +80,7 @@ void fts_send(int sfd, int ffd){
 
 int string_to_int(char * snum){
     int result = -1;
-
     sscanf(snum, "%d", &result);
-
     return result;
 }
 

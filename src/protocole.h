@@ -47,7 +47,6 @@
 #define ALERT_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str); write(sfd, ABORT, strlen(ABORT));}
 #define HANDLE_UNEXPECTED_EVENT(str,sfd){fprintf(stderr,"Unexpected Event: %s\n", str);}
 
-
 // utilitaire
 void stf_send(int sfd, int ffd);
 void fts_send(int sfd, int ffd); // Utilise le senfile syscall non-posix (voir le readme)
