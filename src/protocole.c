@@ -21,12 +21,12 @@ void stf_send(int sfd, int ffd){
         if(n == -1){
             HANDLE_ERROR("read");
         }
-        else if(buff[n-1] == '\0'){
-            write(ffd, buff, strlen(buff));
+        else if(buff[n-1] == '\0' && buff[n-2] == '\xFF'){
+            write(ffd, buff, n-2);
             return;
         }
         else{
-            write(ffd, buff, strlen(buff));
+            write(ffd, buff, n);
             memset(buff, '\0', MAX_READ_LEN);
         }
     }
@@ -43,7 +43,7 @@ void fts_send(int sfd, int ffd){
         }
     }
 
-    if(write(sfd, "\0", 1) == -1){
+    if(write(sfd, "\xFF\0", 2) == -1){
         HANDLE_ERROR("write");
     }
 }
