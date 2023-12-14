@@ -102,7 +102,7 @@ int check_cmd(char * cmd){
             return i;
         }
     }
-    
+
     return CMD_DEFAULT;
 }
 
@@ -118,7 +118,7 @@ int get_cmd(int * cmd, char * file, char * new_file){
     *cmd = check_cmd(command);
 
     switch (n) {
-        case 0:
+        case 0: // how
             HANDLE_ERROR("sscanf (something went wrong)");
         case 1:
             break;
@@ -129,7 +129,7 @@ int get_cmd(int * cmd, char * file, char * new_file){
             strncpy(file, path, MAX_PATH_LEN);
             strncpy(new_file, n_path, MAX_PATH_LEN);
             break;
-        default: // how
+        default: // sscanf empty str or error
             break;
     }
 
@@ -163,7 +163,6 @@ void client_list(int sfd){
     memset(buff, '\0', MAX_READ_LEN);
 
     if(read(sfd, buff, MAX_READ_LEN) == -1){
-        printf("%s\n", buff);
         HANDLE_ERROR("read");
     }
     if(strncmp(buff, CTS, strlen(CTS)) != 0){
@@ -210,7 +209,7 @@ void client_get(int sfd, char * path, char * file_rename){
         return;
     }
     memset(buff, '\0', MAX_READ_LEN);
-    
+
     int ffd = open((file_rename == NULL) ? path : file_rename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
     if(ffd == -1){
@@ -279,12 +278,12 @@ void server_list(int sfd, char *path){
         HANDLE_ERROR("write");
     }
 
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0){
+    while((entry = readdir(dir)) != NULL){
+        if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0){
 
             snprintf(buffer, sizeof(buffer), "%s\n", entry->d_name);
 
-            if (write(sfd, buffer, strlen(buffer)) == -1) {
+            if(write(sfd, buffer, strlen(buffer)) == -1){
                 closedir(dir);
                 HANDLE_ERROR("write");
             }
@@ -311,7 +310,7 @@ void server_get(int sfd, char * storage_path, char *path){
         ALERT_UNEXPECTED_EVENT("server_get: Can't open requested file", sfd);
         return;
     }
-    else if (write(sfd, CTS, sizeof(CTS)) == -1){
+    else if(write(sfd, CTS, sizeof(CTS)) == -1){
         HANDLE_ERROR("write");
     }
 
@@ -333,7 +332,7 @@ void server_put(int sfd, char * storage_path, char *path){
         ALERT_UNEXPECTED_EVENT("server_put: File already exist or open failed", sfd);
         return;
     }
-    else if (write(sfd, CTS, sizeof(CTS)) == -1){
+    else if(write(sfd, CTS, sizeof(CTS)) == -1){
         HANDLE_ERROR("write");
     }
 
